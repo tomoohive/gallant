@@ -33,12 +33,12 @@ def split_texture(input_dir: str, output_dir: str, height: int, width: int):
 
     image_files = glob.glob(os.path.join(input_dir, '*'))
     crops = _crop_texture(image_files=image_files, height=height, width=width)
-    _save_images(crops=crops)
+    return crops
     
 
 if __name__ == '__main__':
     input_dir = './moss_textures'
     output_dir = './result'
-    height, width = 256, 256
+    height, width = 512, 512
 
     split_texture(input_dir=input_dir, output_dir=output_dir, height=height, width=width)
