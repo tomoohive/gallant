@@ -3,7 +3,7 @@ import numpy as np
 
 from sklearn.cluster import KMeans
 
-from kmeans_utils.utils import rand_color_map
+from utils import rand_color_map
 
 
 def applyBilateralFilterFromImagePath(image_path: str):
