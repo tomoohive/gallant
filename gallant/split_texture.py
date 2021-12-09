@@ -1,9 +1,6 @@
 import glob
 import os
 
-import sys,os
-sys.path.append(os.path.dirname(__file__))
-
 import cv2
 from random_name import random_name
 

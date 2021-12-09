@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 
@@ -71,10 +72,10 @@ def kMeansClusteringShapeDetection(input_image, splits_clusters, h_weight=1, s_w
 
     # RGB = rand_color_map(0, 255, n)
     
-    cluster_layer = np.zeros(shape=(input_shape[0], input_shape[1], 4), dtype=int)
-    for coordinate, color_map in zip(coordinate_data, kmeans_clusters):
-        rgb = RGB[color_map - 1]
-        cluster_layer[coordinate[0]][coordinate[1]] = np.array([rgb[0], rgb[1], rgb[2], 255])
+    # cluster_layer = np.zeros(shape=(input_shape[0], input_shape[1], 4), dtype=int)
+    # for coordinate, color_map in zip(coordinate_data, kmeans_clusters):
+    #     rgb = RGB[color_map - 1]
+    #     cluster_layer[coordinate[0]][coordinate[1]] = np.array([rgb[0], rgb[1], rgb[2], 255])
     # cv2.imwrite(output_dir + '/mask.png', cluster_layer[:,:,:3])
     # cv2.imwrite(output_dir + '/layer.png', cluster_layer)
 
@@ -109,6 +110,15 @@ def extractMaskBoundaryAndBrushData(input_image: np.ndarray, blur_image: np.ndar
     IMAGE_DATA_DIRECTORY = output_dir + '/' + name
     MASK_CROP_DATA_DIRECTORY = IMAGE_DATA_DIRECTORY + '/mask'
     BRUSH_CROP_DATA_DIRECTORY = IMAGE_DATA_DIRECTORY + '/crop'
+
+    if not os.path.exists(IMAGE_DATA_DIRECTORY):
+        os.mkdir(IMAGE_DATA_DIRECTORY)
+
+    if not os.path.exists(MASK_CROP_DATA_DIRECTORY):
+        os.mkdir(MASK_CROP_DATA_DIRECTORY)
+
+    if not os.path.exists(BRUSH_CROP_DATA_DIRECTORY):
+        os.mkdir(BRUSH_CROP_DATA_DIRECTORY)
 
     r, g, b = cv2.split(input_image)
     image_shape = r.shape

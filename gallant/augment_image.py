@@ -37,4 +37,3 @@ if __name__ == '__main__':
     augments = augment_image(crops=crops)
     # print(augments)
     _save_images(augments)
-
