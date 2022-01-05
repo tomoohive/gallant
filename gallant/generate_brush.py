@@ -21,6 +21,8 @@ def kMeansClusteringLAB(input_image: np.ndarray, l_weight=1, a_weight=5, b_weigh
     input_shape = input_image.shape
     lab_data = np.empty((0,3), int)
     input_image_lab = cv2.cvtColor(input_image, cv2.COLOR_BGR2LAB)
+    n = 0
+    # input_image_hsv = cv2.cvtColor(input_image, cv2.COLOR_BGR2HSV)
     l, a, b = cv2.split(input_image_lab)
     
     for index_x in range(input_image_lab.shape[0]):
@@ -35,10 +37,16 @@ def kMeansClusteringLAB(input_image: np.ndarray, l_weight=1, a_weight=5, b_weigh
     kmeans_clusters = kmeans.predict(lab_data)
 
     clusters = np.split(kmeans_clusters, int(len(kmeans_clusters)/input_shape[1]))
-    return clusters
+    a_1 = kmeans.cluster_centers_[0][1]
+    a_2 = kmeans.cluster_centers_[1][1]
+    if(abs(637.5-a_1) > abs(637.5-a_2)):
+        n = 0
+    else:
+        n = 1
+    return clusters, n
 
 
-def kMeansClusteringShapeDetection(input_image, splits_clusters, h_weight=1, s_weight=1, n=50):
+def kMeansClusteringShapeDetection(input_image, splits_clusters, h_weight=1, s_weight=1, n=50, channel=0):
     input_shape = input_image.shape
     input_image_hsv = cv2.cvtColor(input_image, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(input_image_hsv)
@@ -52,7 +60,7 @@ def kMeansClusteringShapeDetection(input_image, splits_clusters, h_weight=1, s_w
         texture_datum = np.empty((0,4), int)
         coordinate_datum = np.empty((0,2), int)
         for y, split_cluster in enumerate(split_clusters):
-            if split_cluster == 0:
+            if split_cluster == channel:
                 texture_dot = np.array([[x, y, h[x][y]*h_weight, s[x][y]*s_weight]])
                 texture_datum = np.append(texture_datum, texture_dot, axis=0)
                 coordinate = np.array([[x, y]])
