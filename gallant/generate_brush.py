@@ -39,7 +39,7 @@ def kMeansClusteringLAB(input_image: np.ndarray, l_weight=1, a_weight=5, b_weigh
     clusters = np.split(kmeans_clusters, int(len(kmeans_clusters)/input_shape[1]))
     a_1 = kmeans.cluster_centers_[0][1]
     a_2 = kmeans.cluster_centers_[1][1]
-    if(abs(637.5-a_1) > abs(637.5-a_2)):
+    if(637.5-a_1 > 637.5-a_2):
         n = 0
     else:
         n = 1
