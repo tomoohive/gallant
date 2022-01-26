@@ -90,6 +90,3 @@ class MossDataset(object):
     def __len__(self):
         return len(self.imgs)
 
-
-# directory = "/home/tomoohive/workspace/gallant/gallant/test_result"
-# dataset = MossDataset(directory)
