@@ -1,27 +1,42 @@
 import os
-import glob
-import numpy as np
-from PIL import Image
 import torch
+import numpy as np
+import glob
+from PIL import Image
+
 
 class MossDataset(object):
-    def __init__(self, directory):
+    def __init__(self, directory, transforms):
         self.directory = directory
+        self.transforms = transforms
+        # load all image files, sorting them to
+        # ensure that they are aligned
+        # self.imgs = list(sorted(os.listdir(os.path.join(root, "PNGImages"))))
+        # self.masks = list(sorted(os.listdir(os.path.join(root, "PedMasks"))))
+        self.imgs, self.masks = self._get_dataset_paths(self.directory)
 
-        self.image_paths, self.mask_image_paths = self._get_dataset_paths(directory)
-        print(len(self.image_paths))
 
     def __getitem__(self, idx):
-        image_path = self.image_paths[idx]
-        mask_image_path = self.mask_image_paths[idx]
+        # load images and masks
+        img_path = self.imgs[idx]
+        mask_path = self.masks[idx]
+        img = Image.open(img_path).convert("RGB")
+        # note that we haven't converted the mask to RGB,
+        # because each color corresponds to a different instance
+        # with 0 being background
+        mask = Image.open(mask_path).convert("L")
 
-        img = Image.open(image_path).convert("RGB")
-
-        mask = Image.open(mask_image_path)
         mask = np.array(mask)
+        # instances are encoded as different colors
         obj_ids = np.unique(mask)
+        # first id is the background, so remove it
+        obj_ids = obj_ids[1:]
+
+        # split the color-encoded mask into a set
+        # of binary masks
         masks = mask == obj_ids[:, None, None]
 
+        # get bounding box coordinates for each mask
         num_objs = len(obj_ids)
         boxes = []
         for i in range(num_objs):
@@ -32,13 +47,15 @@ class MossDataset(object):
             ymax = np.max(pos[0])
             boxes.append([xmin, ymin, xmax, ymax])
 
-        boxes = torch.as_tensor(boxes, dtype=torch.float)
-        labels = torch.ones((num_objs, ), dtype=torch.int64)
-        masks = torch.as_tensor(masks, type=torch.uint8)
+        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+        # there is only one class
+        labels = torch.ones((num_objs,), dtype=torch.int64)
+        masks = torch.as_tensor(masks, dtype=torch.uint8)
 
         image_id = torch.tensor([idx])
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
-        iscrowd = torch.zeros((num_objs, ), dtype=torch.int64)
+        # suppose all instances are not crowd
+        iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
 
         target = {}
         target["boxes"] = boxes
@@ -48,15 +65,16 @@ class MossDataset(object):
         target["area"] = area
         target["iscrowd"] = iscrowd
 
-        return img, target
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
 
+        return img, target
 
     def _get_dataset_paths(self, directory):
         files = os.listdir(directory)
         file_paths = []
         for f in files:
             file_paths.append(os.path.join(directory, f))
-
         image_paths = []
         mask_image_paths = []
         for f in file_paths:
@@ -69,44 +87,9 @@ class MossDataset(object):
 
         return image_paths, mask_image_paths
 
-
     def __len__(self):
-        return len(self.image_paths)
-
+        return len(self.imgs)
 
 
 # directory = "/home/tomoohive/workspace/gallant/gallant/test_result"
-# files = os.listdir(directory)
-# file_paths = []
-# for f in files:
-#     file_paths.append(os.path.join(directory, f))
-
-# image_paths = []
-# mask_image_paths = []
-# for f in file_paths:
-#     mask_dir_path = os.path.join(f, "mask")
-#     mask_image_path = os.listdir(mask_dir_path)
-#     image_path = glob.glob(f+'/??????????.png')
-#     for m in mask_image_path:
-#         mask_image_paths.append(os.path.join(mask_dir_path, m))
-#         image_paths.append(image_path[0])
-
-mask_path = '/home/tomoohive/workspace/gallant/gallant/test_result/CAWHRW6PTY/mask/mask_crop8.png'
-mask = Image.open(mask_path)
-mask = np.array(mask)
-
-obj_ids = np.unique(mask)
-obj_ids = obj_ids[1:]
-masks = mask == obj_ids[:, None, None]
-
-pos = np.where(masks[0])
-print(pos[0])
-
-"""
-1. ファイル名取得
-2. パス取得
-3. 元画像取得
-4. マスク画像取得
-5. 同じ数のペアになるように配列を取得
-6. 結合
-"""
+# dataset = MossDataset(directory)

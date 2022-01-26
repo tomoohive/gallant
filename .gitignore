@@ -3,3 +3,5 @@ result
 __pycache__
 gallant/test_result
 test_result
+gallant_ml/*.pth
+gallant_ml/*.png
