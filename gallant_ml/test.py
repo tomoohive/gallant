@@ -15,12 +15,12 @@ if __name__ == "__main__":
     
     directory = "/home/tomoohive/workspace/gallant/gallant/test_result"
     dataset_test = MossDataset(directory, get_transform(train=False))
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cpu')
 
     num_classes = 2
     model = get_model_instance_segmentation(num_classes)
     model.to(device)
-    model.load_state_dict(torch.load('test.pth'))
+    model.load_state_dict(torch.load('test9.pth', map_location=device))
 
     img, _ = dataset_test[0]
     model.eval()
@@ -30,10 +30,10 @@ if __name__ == "__main__":
     im = Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())
 
     draw = ImageDraw.Draw(im)
-    draw.rectangle(prediction[0]['boxes'][0].cpu().numpy())
+    draw.rectangle(prediction[0]['boxes'][2].cpu().numpy())
     im.save('result.png', quality=100)
 
-    im2 = Image.fromarray(prediction[0]['masks'][1, 0].mul(255).byte().cpu().numpy())
+    im2 = Image.fromarray(prediction[0]['masks'][2, 0].mul(255).byte().cpu().numpy())
     im2.save('result1.png', quality=100)
 
     print(prediction[0]['masks'][0].cpu().numpy())
