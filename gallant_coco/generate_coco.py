@@ -1,16 +1,17 @@
+from fileinput import hook_encoded
+from turtle import home
 import cv2
 import numpy as np
 import json
 
-from scipy import ndimage
 from skimage import measure
-from skimage.segmentation import clear_border
-from skimage.filters import threshold_otsu
+from tqdm import tqdm
 
 import collections as cl
 import sys
 import os
 import glob
+import random
 
 
 def info():
@@ -32,18 +33,17 @@ def licenses():
     return tmp
 
 
-def images(image_paths):
+def images(data, directory):
     tmps = []
 
-    for i, file in enumerate(image_paths):
-        img = cv2.imread(file, 0)
-        height, width = img.shape[:3]
+    for i, file in tqdm(enumerate(data)):
+        img = cv2.imread(file[0])
+        height, width, _ = img.shape
 
         tmp = cl.OrderedDict()
         tmp["license"] = 1
         tmp["id"] = i
-        tmp["file_name"] = os.path.basename(file)
-        tmp["file_path"] = file
+        tmp["file_name"] = os.path.basename(file[0])
         tmp["width"] = width
         tmp["height"] = height
         tmp["date_captured"] = ""
@@ -51,16 +51,16 @@ def images(image_paths):
         tmp["flickr_url"] = "Nothing"
         tmps.append(tmp)
 
+        cv2.imwrite(os.path.join(directory, tmp["file_name"]), img)
+
     return tmps
 
 
-def annotations(mask_image_paths):
+def annotations(data):
     tmps = []
-
-    files = mask_image_paths
     
-    for i, file in enumerate(files):
-        img = cv2.imread(file, 0)
+    for i, file in tqdm(enumerate(data)):
+        img = cv2.imread(file[1], 0)
         tmp = cl.OrderedDict()
         contours = measure.find_contours(img, 0.5)
         segmentation_list = []
@@ -116,21 +116,32 @@ def _get_dataset_paths(directory):
     file_paths = []
     for f in files:
         file_paths.append(os.path.join(directory, f))
-    image_paths = []
-    mask_image_paths = []
+    image_and_mask_paths = []
     for f in file_paths:
         mask_dir_path = os.path.join(f, "mask")
         mask_image_path = os.listdir(mask_dir_path)
         image_path = glob.glob(f+'/??????????.png')
         for m in mask_image_path:
-            mask_image_paths.append(os.path.join(mask_dir_path, m))
-            image_paths.append(image_path[0])
+            image_and_mask_paths.append((image_path[0], os.path.join(mask_dir_path, m)))
 
-    return image_paths, mask_image_paths
+    return image_and_mask_paths
 
 
-def main(directory, json_name):
-    image_paths, mask_image_paths = _get_dataset_paths(directory)
+def _make_directory(home_directory):
+    coco_dir = home_directory + '/coco2017'
+    train_dir = coco_dir + '/train2017'
+    val_dir = coco_dir + '/val2017'
+    ano_dir = coco_dir + '/annotations'
+
+    os.makedirs(coco_dir, exist_ok=True)
+    os.makedirs(train_dir, exist_ok=True)
+    os.makedirs(val_dir, exist_ok=True)
+    os.makedirs(ano_dir, exist_ok=True)
+
+    return train_dir, val_dir, ano_dir
+
+
+def make_coco_dict(data, directory):
     query_list = ["info", "licenses", "images", "annotations", "categories", "segment_info"]
     js = cl.OrderedDict()
     for i in range(len(query_list)):
@@ -143,21 +154,38 @@ def main(directory, json_name):
             tmp = licenses()
 
         elif query_list[i] == "images":
-            tmp = images(image_paths)
+            tmp = images(data, directory)
 
         elif query_list[i] == "annotations":
-            tmp = annotations(mask_image_paths)
+            tmp = annotations(data)
 
         elif query_list[i] == "categories":
             tmp = categories()
 
         js[query_list[i]] = tmp
 
-    fw = open(json_name,'w')
-    json.dump(js,fw,indent=2)
+    return js
+
+
+def main(directory, home_directory):
+    image_and_mask_paths = _get_dataset_paths(directory)
+    train_dir, val_dir, annotation_dir = _make_directory(home_directory)
+
+    divide_num = int(len(image_and_mask_paths)*0.2)
+    random.shuffle(image_and_mask_paths)
+    train_data = image_and_mask_paths[:-divide_num]
+    val_data = image_and_mask_paths[-divide_num:]
+    
+    train_json = make_coco_dict(train_data, train_dir)
+    val_json = make_coco_dict(val_data, val_dir)
+
+    fw = open(os.path.join(annotation_dir, 'train.json'),'w')
+    json.dump(train_json,fw,indent=2)
+    fw = open(os.path.join(annotation_dir, 'val.json'),'w')
+    json.dump(val_json,fw,indent=2)
+    
 
 if __name__ == '__main__':
-    args = sys.argv
-    directory = args[1]
-    json_name = args[2]
-    main(directory, json_name)
+    directory = "/home/tomoohive/Pictures/test_result"
+    home_direcotry = "/home/tomoohive/workspace/pytorch_solov2"
+    main(directory, home_direcotry)
